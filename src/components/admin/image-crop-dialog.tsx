@@ -14,9 +14,10 @@ interface ImageCropDialogProps {
   aspect?: number;
 }
 
-export function ImageCropDialog({ image, open, onOpenChange, onCropComplete, aspect = 3/4 }: ImageCropDialogProps) {
+export function ImageCropDialog({ image, open, onOpenChange, onCropComplete, aspect: initialAspect = 3/4 }: ImageCropDialogProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [aspect, setAspect] = useState<number | undefined>(initialAspect);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   const onCropChange = (crop: Point) => {
@@ -58,12 +59,20 @@ export function ImageCropDialog({ image, open, onOpenChange, onCropComplete, asp
       croppedAreaPixels.height
     );
 
-    const base64Image = canvas.toDataURL("image/jpeg", 0.8);
+    const base64Image = canvas.toDataURL("image/jpeg", 0.9);
     onCropComplete(base64Image);
     onOpenChange(false);
   }, [image, croppedAreaPixels, onCropComplete, onOpenChange]);
 
   if (!image) return null;
+
+  const aspectRatios = [
+    { label: "1:1", value: 1 },
+    { label: "3:4", value: 3/4 },
+    { label: "3:2", value: 3/2 },
+    { label: "16:9", value: 16/9 },
+    { label: "Libre", value: undefined },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -71,7 +80,7 @@ export function ImageCropDialog({ image, open, onOpenChange, onCropComplete, asp
         <DialogHeader>
           <DialogTitle>Recortar Imagen</DialogTitle>
         </DialogHeader>
-        <div className="relative w-full h-[400px] bg-muted overflow-hidden">
+        <div className="relative w-full h-[400px] bg-muted overflow-hidden rounded-md">
           <Cropper
             image={image}
             crop={crop}
@@ -82,9 +91,30 @@ export function ImageCropDialog({ image, open, onOpenChange, onCropComplete, asp
             onCropComplete={onCropCompleteInternal}
           />
         </div>
-        <div className="space-y-4 py-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">Zoom</span>
+        
+        <div className="space-y-6 py-4">
+          <div className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Relación de Aspecto</span>
+            <div className="flex flex-wrap gap-2">
+              {aspectRatios.map((ar) => (
+                <Button
+                  key={ar.label}
+                  variant={aspect === ar.value ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setAspect(ar.value)}
+                >
+                  {ar.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Zoom</span>
+              <span className="text-xs font-medium">{zoom.toFixed(1)}x</span>
+            </div>
             <Slider
               value={[zoom]}
               min={1}
@@ -94,6 +124,7 @@ export function ImageCropDialog({ image, open, onOpenChange, onCropComplete, asp
             />
           </div>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon, X, Loader2, ChevronUp, ChevronDown, Crop } from "lucide-react";
 import { ImageCropDialog } from "./image-crop-dialog";
+import { toast } from "sonner";
 
 interface AddPerfumeDialogProps {
   open: boolean;
@@ -78,9 +79,63 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
     setNotasImagenUrl(null);
   };
 
+  const handleFiles = (files: FileList | null, target: "product" | "notes" | number) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (!file.type.startsWith("image/")) {
+      toast.error("El archivo debe ser una imagen");
+      return;
+    }
+    handleFileChange(file, target);
+  };
+
+  // Paste from clipboard support
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!open) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            // Default to product if pasting generally, or we can just ignore general paste
+            // Better to let user click a "Paste" button for specific target
+          }
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [open]);
+
+  const handlePasteButtonClick = async (target: "product" | "notes" | number) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith("image/")) {
+            const blob = await item.getType(type);
+            const file = new File([blob], "pasted-image.png", { type });
+            handleFileChange(file, target);
+            return;
+          }
+        }
+      }
+      toast.error("No hay imágenes en el portapapeles");
+    } catch (err) {
+      toast.error("No se pudo acceder al portapapeles. Asegúrate de dar permisos.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre || !marca || !precio) return;
+    if (!nombre || !marca || !precio) {
+      toast.error("Por favor completa nombre, marca y precio");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -89,17 +144,17 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
         marca,
         precio: parseFloat(precio),
         notasDescripcion,
-        // Since the backend only has one producto_imagen_url, we use the first image from the carousel
         productoImagenUrl: images[0] || "",
         notasImagenUrl: notasImagenUrl || "",
-        // We can pass the full images array, the backend will need to handle it (e.g. as a JSON string in a new column)
         images: images,
         visible: true,
       });
+      toast.success("Perfume agregado correctamente");
       resetForm();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      toast.error("Error al agregar perfume: " + (error.message || "Error desconocido"));
     } finally {
       setIsSubmitting(false);
     }
@@ -162,14 +217,25 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
                     )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => productInputRef.current?.click()}
-                  className="aspect-[3/4] border-2 border-dashed rounded-lg flex flex-col items-center justify-center hover:bg-muted/50 transition-colors"
+                <div
+                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleFiles(e.dataTransfer.files, "product");
+                  }}
+                  className="aspect-[3/4] border-2 border-dashed rounded-lg flex flex-col items-center justify-center hover:bg-muted/50 hover:border-primary/50 transition-all group/add relative"
                 >
-                  <ImageIcon className="w-8 h-8 text-muted-foreground mb-1" />
-                  <span className="text-[10px] text-muted-foreground">Agregar Foto</span>
-                </button>
+                  <div className="flex flex-col items-center justify-center p-4 text-center">
+                    <ImageIcon className="w-8 h-8 text-muted-foreground mb-2 group-hover/add:text-primary transition-colors" />
+                    <span className="text-[10px] text-muted-foreground group-hover/add:text-primary transition-colors mb-2">Arrastrá o hacé click</span>
+                    <div className="flex gap-1">
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[9px] px-2" onClick={() => productInputRef.current?.click()}>Subir</Button>
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[9px] px-2" onClick={() => handlePasteButtonClick("product")}>Pegar</Button>
+                    </div>
+                  </div>
+                </div>
               </div>
               <input ref={productInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f, "product"); }} />
             </div>
@@ -177,8 +243,14 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
             <div className="space-y-2">
               <Label>Imagen Pirámide (Fragrantica)</Label>
               <div 
-                className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center min-h-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => notesInputRef.current?.click()}
+                className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center min-h-[140px] hover:bg-muted/50 hover:border-primary/50 transition-all group/notes relative"
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleFiles(e.dataTransfer.files, "notes");
+                }}
               >
                 {notasImagenUrl ? (
                   <div className="relative w-full h-32">
@@ -193,10 +265,14 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <ImageIcon className="w-8 h-8 text-muted-foreground mb-1" />
-                    <span className="text-[10px] text-muted-foreground text-center">Subir pirámide olfativa</span>
-                  </>
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <ImageIcon className="w-8 h-8 text-muted-foreground mb-2 group/notes:text-primary transition-colors" />
+                    <span className="text-[10px] text-muted-foreground group/notes:text-primary transition-colors mb-2 text-center">Subir pirámide olfativa</span>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[9px] px-2" onClick={() => notesInputRef.current?.click()}>Subir</Button>
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[9px] px-2" onClick={() => handlePasteButtonClick("notes")}>Pegar</Button>
+                    </div>
+                  </div>
                 )}
                 <input ref={notesInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f, "notes"); }} />
               </div>

@@ -19,6 +19,8 @@ export const metadata: Metadata = {
     "Descubrí nuestra colección curada de fragancias premium. Perfumes de lujo para el individuo más exigente.",
 };
 
+import { Toaster } from "@/components/ui/sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +31,10 @@ export default function RootLayout({
       lang="es"
       className={`${inter.variable} ${playfair.variable} bg-background`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        <Toaster position="top-right" richColors />
+      </body>
     </html>
   );
 }

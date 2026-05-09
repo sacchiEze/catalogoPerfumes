@@ -75,7 +75,13 @@ export default function AdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newPerfume),
     });
-    if (res.ok) fetchPerfumes();
+    
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.details || errorData.error || "Error al crear el perfume");
+    }
+    
+    fetchPerfumes();
   };
 
   const handleSaveEdit = async (updated: any) => {

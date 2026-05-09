@@ -29,13 +29,6 @@ export function Header({ onSearchChange }: HeaderProps) {
               />
             </div>
             
-            <Link 
-              href="/admin" 
-              className="p-2.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-primary rounded-full transition-all border shadow-sm"
-              title="Panel Admin"
-            >
-              <Settings className="w-5 h-5" />
-            </Link>
           </div>
         </div>
       </div>
