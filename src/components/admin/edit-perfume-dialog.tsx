@@ -23,8 +23,10 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
     marca: "",
     precio: "",
     notasDescripcion: "",
+    inspiracion: "",
     visible: true
   });
+  const [inspiracionImagenUrl, setInspiracionImagenUrl] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [notasImagenUrl, setNotasImagenUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,10 +34,11 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
   // Cropping state
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
-  const [cropTarget, setCropTarget] = useState<"product" | "notes" | number>("product");
+  const [cropTarget, setCropTarget] = useState<"product" | "notes" | "inspiration" | number>("product");
 
   const productInputRef = useRef<HTMLInputElement>(null);
   const notesInputRef = useRef<HTMLInputElement>(null);
+  const inspirationInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (perfume) {
@@ -44,15 +47,17 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
         marca: perfume.marca,
         precio: perfume.precio.toString(),
         notasDescripcion: perfume.notasDescripcion || "",
+        inspiracion: perfume.inspiracion || "",
         visible: perfume.visible
       });
       // Handle images array if it exists, fallback to single image
       setImages(perfume.images || (perfume.productoImagenUrl ? [perfume.productoImagenUrl] : []));
       setNotasImagenUrl(perfume.notasImagenUrl || null);
+      setInspiracionImagenUrl(perfume.inspiracionImagenUrl || null);
     }
   }, [perfume, open]);
 
-  const handleFileChange = (file: File, target: "product" | "notes" | number) => {
+  const handleFileChange = (file: File, target: "product" | "notes" | "inspiration" | number) => {
     if (!file.type.startsWith("image/")) return;
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -63,7 +68,7 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
     reader.readAsDataURL(file);
   };
 
-  const handleFiles = (files: FileList | null, target: "product" | "notes" | number) => {
+  const handleFiles = (files: FileList | null, target: "product" | "notes" | "inspiration" | number) => {
     if (!files || files.length === 0) return;
     const file = files[0];
     if (!file.type.startsWith("image/")) {
@@ -83,7 +88,7 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
     return () => window.removeEventListener("paste", handlePaste);
   }, [open]);
 
-  const handlePasteButtonClick = async (target: "product" | "notes" | number) => {
+  const handlePasteButtonClick = async (target: "product" | "notes" | "inspiration" | number) => {
     try {
       const clipboardItems = await navigator.clipboard.read();
       for (const item of clipboardItems) {
@@ -107,6 +112,8 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
       setImages([...images, croppedImage]);
     } else if (cropTarget === "notes") {
       setNotasImagenUrl(croppedImage);
+    } else if (cropTarget === "inspiration") {
+      setInspiracionImagenUrl(croppedImage);
     } else if (typeof cropTarget === "number") {
       const newImages = [...images];
       newImages[cropTarget] = croppedImage;
@@ -143,6 +150,7 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
         precio: parseFloat(formData.precio),
         productoImagenUrl: images[0] || "",
         notasImagenUrl: notasImagenUrl || "",
+        inspiracionImagenUrl: inspiracionImagenUrl || "",
         images: images,
       });
       toast.success("Perfume actualizado correctamente");
@@ -186,6 +194,49 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
             <div className="space-y-2">
               <Label htmlFor="edit-notas">Descripción de Notas</Label>
               <Textarea id="edit-notas" value={formData.notasDescripcion} onChange={(e) => handleChange("notasDescripcion", e.target.value)} rows={3} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-inspiracion">Inspiración de: (Opcional)</Label>
+              <Input id="edit-inspiracion" value={formData.inspiracion} onChange={(e) => handleChange("inspiracion", e.target.value)} placeholder="Ej: Invictus de Paco Rabanne" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Foto del Perfume Original (Referencia)</Label>
+              <div 
+                className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center min-h-[140px] hover:bg-muted/50 hover:border-primary/50 transition-all group/insp relative"
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleFiles(e.dataTransfer.files, "inspiration");
+                }}
+              >
+                {inspiracionImagenUrl ? (
+                  <div className="relative w-full h-32">
+                    <img src={inspiracionImagenUrl} alt="Inspiración" className="w-full h-full object-contain" />
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <Button type="button" size="icon" variant="secondary" className="h-8 w-8 shadow-md" onClick={(e) => { e.stopPropagation(); setImageToCrop(inspiracionImagenUrl); setCropTarget("inspiration"); setCropDialogOpen(true); }}>
+                        <Crop className="h-4 w-4" />
+                      </Button>
+                      <Button type="button" size="icon" variant="destructive" className="h-8 w-8 shadow-md" onClick={(e) => { e.stopPropagation(); setInspiracionImagenUrl(null); }}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <ImageIcon className="w-8 h-8 text-muted-foreground mb-2 group/insp:text-primary transition-colors" />
+                    <span className="text-[10px] text-muted-foreground group/insp:text-primary transition-colors mb-2 text-center">Subir foto del perfume original</span>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[9px] px-2" onClick={() => inspirationInputRef.current?.click()}>Subir</Button>
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[9px] px-2" onClick={() => handlePasteButtonClick("inspiration")}>Pegar</Button>
+                    </div>
+                  </div>
+                )}
+                <input ref={inspirationInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f, "inspiration"); }} />
+              </div>
             </div>
 
             <div className="space-y-4">

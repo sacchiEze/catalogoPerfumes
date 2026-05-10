@@ -8,9 +8,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 interface ImageCarouselProps {
   images: string[]
   alt: string
+  inspirationImage?: string | null
 }
 
-export function ImageCarousel({ images, alt }: ImageCarouselProps) {
+export function ImageCarousel({ images, alt, inspirationImage }: ImageCarouselProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true })
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [canScrollPrev, setCanScrollPrev] = useState(false)
@@ -50,6 +51,11 @@ export function ImageCarousel({ images, alt }: ImageCarouselProps) {
                 className="object-cover"
                 priority={index === 0}
               />
+              {inspirationImage && image === inspirationImage && (
+                <div className="absolute top-4 left-4 bg-primary/90 text-primary-foreground text-[10px] sm:text-xs px-3 py-1.5 rounded-full font-medium backdrop-blur-sm shadow-lg z-10">
+                  Inspirado en:
+                </div>
+              )}
             </div>
           ))}
         </div>

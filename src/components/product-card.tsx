@@ -15,6 +15,8 @@ export interface Perfume {
   productoImagenUrl: string;
   images?: string[];
   visible: boolean;
+  inspiracion?: string;
+  inspiracionImagenUrl?: string;
 }
 
 interface ProductCardProps {

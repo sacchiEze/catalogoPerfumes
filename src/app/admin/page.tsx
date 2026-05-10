@@ -6,8 +6,15 @@ import { PerfumeTable } from "@/components/admin/perfume-table";
 import { AddPerfumeDialog } from "@/components/admin/add-perfume-dialog";
 import { EditPerfumeDialog } from "@/components/admin/edit-perfume-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Lock, ArrowLeft } from "lucide-react";
+import { Plus, Loader2, Lock, ArrowLeft, Search, ArrowUpDown, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -18,6 +25,10 @@ export default function AdminPage() {
   const [perfumes, setPerfumes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("nombre");
+  const [filterMarca, setFilterMarca] = useState("all");
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingPerfume, setEditingPerfume] = useState<any | null>(null);
@@ -136,6 +147,51 @@ export default function AdminPage() {
     }
   };
 
+  const handleBulkVisibility = async (visible: boolean) => {
+    const itemsToUpdate = filteredPerfumes;
+    if (itemsToUpdate.length === 0) return;
+
+    if (!confirm(`¿Estás seguro de ${visible ? 'mostrar' : 'ocultar'} todos los (${itemsToUpdate.length}) perfumes filtrados?`)) return;
+
+    // Optimistic update
+    const idsToUpdate = itemsToUpdate.map(p => p.id);
+    setPerfumes(perfumes.map(p => idsToUpdate.includes(p.id) ? { ...p, visible } : p));
+
+    try {
+      // We'll update them one by one for now since there might not be a bulk API
+      // If there's a bulk API, we should use it.
+      await Promise.all(idsToUpdate.map(id => 
+        fetch(`/api/perfumes/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visible }),
+        })
+      ));
+      fetchPerfumes(true);
+    } catch (err) {
+      console.error("Bulk update failed:", err);
+      fetchPerfumes();
+    }
+  };
+
+  const marcas = Array.from(new Set(perfumes.map(p => p.marca))).sort();
+
+  const filteredPerfumes = perfumes
+    .filter(p => {
+      const matchesSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           p.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (p.inspiracion && p.inspiracion.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesMarca = filterMarca === "all" || p.marca === filterMarca;
+      return matchesSearch && matchesMarca;
+    })
+    .sort((a, b) => {
+      if (sortBy === "nombre") return a.nombre.localeCompare(b.nombre);
+      if (sortBy === "marca") return a.marca.localeCompare(b.marca);
+      if (sortBy === "precio-asc") return a.precio - b.precio;
+      if (sortBy === "precio-desc") return b.precio - a.precio;
+      return 0;
+    });
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -187,9 +243,75 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div className="md:col-span-4 relative">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Nombre, marca o inspiración..." 
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Filtrar por Marca</label>
+              <Select value={filterMarca} onValueChange={setFilterMarca}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas las marcas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las marcas</SelectItem>
+                  {marcas.map(m => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Ordenar por</label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nombre">Nombre (A-Z)</SelectItem>
+                  <SelectItem value="marca">Marca (A-Z)</SelectItem>
+                  <SelectItem value="precio-asc">Precio: Menor a Mayor</SelectItem>
+                  <SelectItem value="precio-desc">Precio: Mayor a Menor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="md:col-span-2 flex gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="flex-1 text-slate-600 border-slate-200 hover:bg-slate-50"
+                onClick={() => handleBulkVisibility(false)}
+                title="Ocultar filtrados"
+              >
+                <EyeOff className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
+                onClick={() => handleBulkVisibility(true)}
+                title="Mostrar filtrados"
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t pt-4">
             <p className="text-sm text-muted-foreground">
-              {perfumes.length} {perfumes.length === 1 ? "perfume registrado" : "perfumes registrados"}
+              Mostrando {filteredPerfumes.length} de {perfumes.length} perfumes
             </p>
           </div>
 
@@ -200,7 +322,7 @@ export default function AdminPage() {
             </div>
           ) : (
             <PerfumeTable 
-              data={perfumes} 
+              data={filteredPerfumes} 
               onEdit={(p) => { setEditingPerfume(p); setIsEditOpen(true); }}
               onDelete={handleDelete}
               onToggleVisibility={handleToggleVisibility}
