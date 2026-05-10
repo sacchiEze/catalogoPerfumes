@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 const mapPerfume = (p: any) => ({
@@ -18,23 +16,39 @@ const mapPerfume = (p: any) => ({
   updatedAt: p.updated_at
 });
 
-// Helper to save base64 image
-async function saveBase64Image(base64Data: string, subfolder: string) {
+// Helper to upload base64 image to Supabase Storage
+async function uploadToSupabase(base64Data: string, subfolder: string) {
   if (!base64Data || !base64Data.startsWith('data:image')) return base64Data;
   
   try {
-    const format = base64Data.split(';')[0].split('/')[1];
+    const contentType = base64Data.split(';')[0].split(':')[1];
+    const format = contentType.split('/')[1];
     const base64Image = base64Data.split(';base64,').pop();
     if (!base64Image) return base64Data;
 
-    const fileName = `${uuidv4()}.${format}`;
-    const relativePath = `/uploads/${subfolder}/${fileName}`;
-    const absolutePath = path.join(process.cwd(), 'public', relativePath);
+    // Convert base64 to Buffer/ArrayBuffer
+    const buffer = Buffer.from(base64Image, 'base64');
+    const fileName = `${subfolder}/${uuidv4()}.${format}`;
     
-    fs.writeFileSync(absolutePath, base64Image, { encoding: 'base64' });
-    return relativePath;
+    // Upload to 'perfumes' bucket
+    const { data, error } = await supabase.storage
+      .from('perfumes')
+      .upload(fileName, buffer, {
+        contentType,
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    // Get Public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('perfumes')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
   } catch (error) {
-    console.error('Error saving image:', error);
+    console.error('Error uploading image to Supabase:', error);
     return base64Data;
   }
 }
@@ -59,13 +73,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Save images to local storage
+    // Upload images to Supabase Storage
     const savedImages = await Promise.all(
-      (body.images || []).map((img: string) => saveBase64Image(img, 'products'))
+      (body.images || []).map((img: string) => uploadToSupabase(img, 'products'))
     );
     
     const savedNotesImage = body.notasImagenUrl 
-      ? await saveBase64Image(body.notasImagenUrl, 'notes')
+      ? await uploadToSupabase(body.notasImagenUrl, 'notes')
       : '';
 
     const { data, error } = await supabase
