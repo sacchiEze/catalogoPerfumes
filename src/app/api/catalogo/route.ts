@@ -13,6 +13,7 @@ const mapPerfume = (p: any) => ({
   inspiracion: p.inspiracion,
   inspiracionImagenUrl: p.inspiracion_imagen_url,
   genero: p.genero,
+  tamanos: p.tamanos || [],
   images: p.images || [],
   visible: p.visible,
   createdAt: p.created_at,

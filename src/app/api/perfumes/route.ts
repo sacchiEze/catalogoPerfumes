@@ -13,6 +13,7 @@ const mapPerfume = (p: any) => ({
   inspiracion: p.inspiracion,
   inspiracionImagenUrl: p.inspiracion_imagen_url,
   genero: p.genero,
+  tamanos: p.tamanos || [],
   images: p.images || [],
   visible: p.visible,
   createdAt: p.created_at,
@@ -102,6 +103,7 @@ export async function POST(request: Request) {
           inspiracion: body.inspiracion ?? '',
           inspiracion_imagen_url: savedInspirationImage,
           genero: body.genero ?? '',
+          tamanos: body.tamanos ?? [],
           images: savedImages,
           visible: body.visible ?? true,
         }

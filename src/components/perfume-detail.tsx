@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import type { Perfume } from "./product-card"
 import { ImageCarousel } from "./image-carousel"
 import { WhatsAppButton } from "./whatsapp-button"
@@ -9,6 +10,10 @@ interface PerfumeDetailProps {
 }
 
 export function PerfumeDetail({ perfume }: PerfumeDetailProps) {
+  const [selectedTamano, setSelectedTamano] = useState(
+    perfume.tamanos && perfume.tamanos.length > 0 ? perfume.tamanos[0] : null
+  );
+
   // Build images array from the available URLs in the DB
   const validImages = perfume.images && perfume.images.length > 0 ? perfume.images : [];
   if (validImages.length === 0 && perfume.productoImagenUrl) {
@@ -72,8 +77,29 @@ export function PerfumeDetail({ perfume }: PerfumeDetailProps) {
           )}
           
           <p className="text-2xl sm:text-3xl font-medium text-foreground pt-2">
-            ${perfume.precio.toLocaleString("es-AR")}
+            ${(selectedTamano ? selectedTamano.precio : perfume.precio).toLocaleString("es-AR")}
           </p>
+          
+          {perfume.tamanos && perfume.tamanos.length > 0 && (
+            <div className="pt-4 space-y-3">
+              <span className="text-sm font-medium text-muted-foreground">Tamaño:</span>
+              <div className="flex flex-wrap gap-2">
+                {perfume.tamanos.map((t) => (
+                  <button
+                    key={t.volumen}
+                    onClick={() => setSelectedTamano(t)}
+                    className={`px-4 py-2 text-sm font-medium rounded-md border transition-all ${
+                      selectedTamano?.volumen === t.volumen
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    {t.volumen}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 pt-8 border-t border-border">
@@ -86,7 +112,11 @@ export function PerfumeDetail({ perfume }: PerfumeDetailProps) {
         </div>
 
         <div className="mt-8 pt-8 border-t border-border">
-          <WhatsAppButton perfume={perfume} />
+          <WhatsAppButton 
+            perfume={perfume} 
+            selectedSize={selectedTamano?.volumen}
+            selectedPrice={selectedTamano?.precio}
+          />
           <p className="mt-3 text-xs text-muted-foreground text-center sm:text-left">
             Consulta gratuita. Hacemos envíos.
           </p>

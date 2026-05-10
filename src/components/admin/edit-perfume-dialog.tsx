@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageIcon, X, Loader2, ChevronUp, ChevronDown, Crop } from "lucide-react";
+import { ImageIcon, X, Loader2, ChevronUp, ChevronDown, Crop, Plus } from "lucide-react";
 import { ImageCropDialog } from "./image-crop-dialog";
 import { 
   Select, 
@@ -29,11 +29,11 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
     nombre: "",
     marca: "",
     genero: "Unisex",
-    precio: "",
     notasDescripcion: "",
     inspiracion: "",
     visible: true
   });
+  const [tamanos, setTamanos] = useState([{ volumen: "100ml", precio: "" }]);
   const [inspiracionImagenUrl, setInspiracionImagenUrl] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [notasImagenUrl, setNotasImagenUrl] = useState<string | null>(null);
@@ -54,11 +54,16 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
         nombre: perfume.nombre,
         marca: perfume.marca,
         genero: perfume.genero || "Unisex",
-        precio: perfume.precio.toString(),
         notasDescripcion: perfume.notasDescripcion || "",
         inspiracion: perfume.inspiracion || "",
         visible: perfume.visible
       });
+      
+      if (perfume.tamanos && perfume.tamanos.length > 0) {
+        setTamanos(perfume.tamanos.map((t: any) => ({ volumen: t.volumen, precio: t.precio.toString() })));
+      } else {
+        setTamanos([{ volumen: "100ml", precio: perfume.precio ? perfume.precio.toString() : "" }]);
+      }
       // Handle images array if it exists, fallback to single image
       setImages(perfume.images || (perfume.productoImagenUrl ? [perfume.productoImagenUrl] : []));
       setNotasImagenUrl(perfume.notasImagenUrl || null);
@@ -146,17 +151,27 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nombre || !formData.marca || !formData.precio || !perfume) {
+    if (!formData.nombre || !formData.marca || !perfume) {
       toast.error("Por favor completa los campos obligatorios");
       return;
     }
+
+    const validTamanos = tamanos.filter(t => t.volumen && t.precio);
+    if (validTamanos.length === 0) {
+      toast.error("Agrega al menos un tamaño con precio válido");
+      return;
+    }
+
     setIsSubmitting(true);
+
+    const basePrice = Math.min(...validTamanos.map(t => parseFloat(t.precio)));
 
     try {
       await onSave({
         ...perfume,
         ...formData,
-        precio: parseFloat(formData.precio),
+        precio: basePrice,
+        tamanos: validTamanos.map(t => ({ volumen: t.volumen, precio: parseFloat(t.precio) })),
         productoImagenUrl: images[0] || "",
         notasImagenUrl: notasImagenUrl || "",
         inspiracionImagenUrl: inspiracionImagenUrl || "",
@@ -209,9 +224,68 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-precio">Precio (ARS)</Label>
-                <Input id="edit-precio" type="number" step="0.01" value={formData.precio} onChange={(e) => handleChange("precio", e.target.value)} required />
+            </div>
+
+            <div className="space-y-4 border p-4 rounded-lg bg-muted/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-base">Tamaños y Precios</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setTamanos([...tamanos, { volumen: "", precio: "" }])}
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Agregar Tamaño
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {tamanos.map((tamano, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Tamaño (ej. 100ml)</Label>
+                      <Input 
+                        value={tamano.volumen} 
+                        onChange={(e) => {
+                          const newTamanos = [...tamanos];
+                          newTamanos[index].volumen = e.target.value;
+                          setTamanos(newTamanos);
+                        }} 
+                        placeholder="100ml"
+                        required
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Precio (ARS)</Label>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        value={tamano.precio} 
+                        onChange={(e) => {
+                          const newTamanos = [...tamanos];
+                          newTamanos[index].precio = e.target.value;
+                          setTamanos(newTamanos);
+                        }} 
+                        required
+                      />
+                    </div>
+                    {tamanos.length > 1 && (
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="mt-5 text-destructive"
+                        onClick={() => {
+                          const newTamanos = [...tamanos];
+                          newTamanos.splice(index, 1);
+                          setTamanos(newTamanos);
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 

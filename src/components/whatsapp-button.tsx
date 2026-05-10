@@ -5,11 +5,15 @@ import type { Perfume } from "./product-card";
 interface WhatsAppButtonProps {
   perfume: Perfume;
   variant?: "default" | "compact";
+  selectedSize?: string;
+  selectedPrice?: number;
 }
 
-export function WhatsAppButton({ perfume, variant = "default" }: WhatsAppButtonProps) {
+export function WhatsAppButton({ perfume, variant = "default", selectedSize, selectedPrice }: WhatsAppButtonProps) {
+  const priceToUse = selectedPrice || perfume.precio;
+  const sizeText = selectedSize ? ` tamaño ${selectedSize}` : '';
   const whatsappMessage = encodeURIComponent(
-    `Hola, me interesa el perfume ${perfume.nombre} de ${perfume.marca} ($${perfume.precio.toLocaleString("es-AR")})`
+    `Hola, me interesa el perfume ${perfume.nombre} de ${perfume.marca}${sizeText} ($${priceToUse.toLocaleString("es-AR")})`
   );
   const whatsappLink = `https://wa.me/541135687537?text=${whatsappMessage}`;
 

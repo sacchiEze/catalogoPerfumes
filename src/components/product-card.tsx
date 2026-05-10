@@ -18,6 +18,7 @@ export interface Perfume {
   inspiracion?: string;
   inspiracionImagenUrl?: string;
   genero?: string;
+  tamanos?: { volumen: string; precio: number }[];
 }
 
 interface ProductCardProps {
@@ -82,6 +83,9 @@ export function ProductCard({ perfume }: ProductCardProps) {
         </div>
         
         <p className="text-lg font-medium text-foreground pt-2">
+          {perfume.tamanos && perfume.tamanos.length > 1 ? (
+            <span className="text-xs text-muted-foreground mr-1">Desde</span>
+          ) : null}
           ${perfume.precio.toLocaleString("es-AR")}
         </p>
       </div>

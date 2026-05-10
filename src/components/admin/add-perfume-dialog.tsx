@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageIcon, X, Loader2, ChevronUp, ChevronDown, Crop } from "lucide-react";
+import { ImageIcon, X, Loader2, ChevronUp, ChevronDown, Crop, Plus } from "lucide-react";
 import { ImageCropDialog } from "./image-crop-dialog";
 import { 
   Select, 
@@ -27,7 +27,7 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
   const [nombre, setNombre] = useState("");
   const [marca, setMarca] = useState("");
   const [genero, setGenero] = useState("Unisex");
-  const [precio, setPrecio] = useState("");
+  const [tamanos, setTamanos] = useState([{ volumen: "100ml", precio: "" }]);
   const [notasDescripcion, setNotasDescripcion] = useState("");
   const [inspiracion, setInspiracion] = useState("");
   const [inspiracionImagenUrl, setInspiracionImagenUrl] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
     setNombre("");
     setMarca("");
     setGenero("Unisex");
-    setPrecio("");
+    setTamanos([{ volumen: "100ml", precio: "" }]);
     setNotasDescripcion("");
     setInspiracion("");
     setInspiracionImagenUrl(null);
@@ -147,18 +147,29 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre || !marca || !precio) {
-      toast.error("Por favor completa nombre, marca y precio");
+    if (!nombre || !marca) {
+      toast.error("Por favor completa nombre y marca");
       return;
     }
+    
+    const validTamanos = tamanos.filter(t => t.volumen && t.precio);
+    if (validTamanos.length === 0) {
+      toast.error("Agrega al menos un tamaño con precio válido");
+      return;
+    }
+    
     setIsSubmitting(true);
+
+    // Calc base price (lowest)
+    const basePrice = Math.min(...validTamanos.map(t => parseFloat(t.precio)));
 
     try {
       await onAdd({
         nombre,
         marca,
         genero,
-        precio: parseFloat(precio),
+        precio: basePrice,
+        tamanos: validTamanos.map(t => ({ volumen: t.volumen, precio: parseFloat(t.precio) })),
         notasDescripcion,
         inspiracion,
         inspiracionImagenUrl: inspiracionImagenUrl || "",
@@ -211,9 +222,68 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="precio">Precio (ARS)</Label>
-                <Input id="precio" type="number" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} required />
+            </div>
+
+            <div className="space-y-4 border p-4 rounded-lg bg-muted/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-base">Tamaños y Precios</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setTamanos([...tamanos, { volumen: "", precio: "" }])}
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Agregar Tamaño
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {tamanos.map((tamano, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Tamaño (ej. 100ml)</Label>
+                      <Input 
+                        value={tamano.volumen} 
+                        onChange={(e) => {
+                          const newTamanos = [...tamanos];
+                          newTamanos[index].volumen = e.target.value;
+                          setTamanos(newTamanos);
+                        }} 
+                        placeholder="100ml"
+                        required
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Precio (ARS)</Label>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        value={tamano.precio} 
+                        onChange={(e) => {
+                          const newTamanos = [...tamanos];
+                          newTamanos[index].precio = e.target.value;
+                          setTamanos(newTamanos);
+                        }} 
+                        required
+                      />
+                    </div>
+                    {tamanos.length > 1 && (
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="mt-5 text-destructive"
+                        onClick={() => {
+                          const newTamanos = [...tamanos];
+                          newTamanos.splice(index, 1);
+                          setTamanos(newTamanos);
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
