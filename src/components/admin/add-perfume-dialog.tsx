@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon, X, Loader2, ChevronUp, ChevronDown, Crop } from "lucide-react";
 import { ImageCropDialog } from "./image-crop-dialog";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface AddPerfumeDialogProps {
@@ -19,6 +26,7 @@ interface AddPerfumeDialogProps {
 export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialogProps) {
   const [nombre, setNombre] = useState("");
   const [marca, setMarca] = useState("");
+  const [genero, setGenero] = useState("Unisex");
   const [precio, setPrecio] = useState("");
   const [notasDescripcion, setNotasDescripcion] = useState("");
   const [inspiracion, setInspiracion] = useState("");
@@ -78,6 +86,7 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
   const resetForm = () => {
     setNombre("");
     setMarca("");
+    setGenero("Unisex");
     setPrecio("");
     setNotasDescripcion("");
     setInspiracion("");
@@ -148,6 +157,7 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
       await onAdd({
         nombre,
         marca,
+        genero,
         precio: parseFloat(precio),
         notasDescripcion,
         inspiracion,
@@ -176,7 +186,7 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
             <DialogTitle>Agregar Nuevo Perfume</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre</Label>
                 <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
@@ -187,9 +197,24 @@ export function AddPerfumeDialog({ open, onOpenChange, onAdd }: AddPerfumeDialog
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="precio">Precio (ARS)</Label>
-              <Input id="precio" type="number" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} required />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Género</Label>
+                <Select value={genero} onValueChange={setGenero}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Femenino">Femenino</SelectItem>
+                    <SelectItem value="Unisex">Unisex</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="precio">Precio (ARS)</Label>
+                <Input id="precio" type="number" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} required />
+              </div>
             </div>
 
             <div className="space-y-2">

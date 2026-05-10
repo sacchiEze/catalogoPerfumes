@@ -17,6 +17,7 @@ export interface Perfume {
   visible: boolean;
   inspiracion?: string;
   inspiracionImagenUrl?: string;
+  genero?: string;
 }
 
 interface ProductCardProps {
@@ -31,14 +32,27 @@ export function ProductCard({ perfume }: ProductCardProps) {
       <Link href={`/perfume/${perfume.id}`} className="block">
         <div className="aspect-[3/4] bg-secondary mb-4 overflow-hidden">
           {!imgError && perfume.productoImagenUrl ? (
-            <Image
-              src={perfume.productoImagenUrl}
-              alt={`${perfume.nombre} de ${perfume.marca}`}
-              width={400}
-              height={533}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              onError={() => setImgError(true)}
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={perfume.productoImagenUrl}
+                alt={`${perfume.nombre} de ${perfume.marca}`}
+                width={400}
+                height={533}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={() => setImgError(true)}
+              />
+              {perfume.genero && (
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full backdrop-blur-md border font-medium ${
+                    perfume.genero === "Masculino" ? "bg-blue-500/10 text-blue-700 border-blue-200" :
+                    perfume.genero === "Femenino" ? "bg-pink-500/10 text-pink-700 border-pink-200" :
+                    "bg-slate-500/10 text-slate-700 border-slate-200"
+                  }`}>
+                    {perfume.genero}
+                  </span>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-muted">
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">{perfume.marca}</span>

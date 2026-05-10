@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon, X, Loader2, ChevronUp, ChevronDown, Crop } from "lucide-react";
 import { ImageCropDialog } from "./image-crop-dialog";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface EditPerfumeDialogProps {
@@ -21,6 +28,7 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
   const [formData, setFormData] = useState({
     nombre: "",
     marca: "",
+    genero: "Unisex",
     precio: "",
     notasDescripcion: "",
     inspiracion: "",
@@ -45,6 +53,7 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
       setFormData({
         nombre: perfume.nombre,
         marca: perfume.marca,
+        genero: perfume.genero || "Unisex",
         precio: perfume.precio.toString(),
         notasDescripcion: perfume.notasDescripcion || "",
         inspiracion: perfume.inspiracion || "",
@@ -175,7 +184,7 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
             <DialogTitle>Editar Perfume</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-nombre">Nombre</Label>
                 <Input id="edit-nombre" value={formData.nombre} onChange={(e) => handleChange("nombre", e.target.value)} required />
@@ -186,9 +195,24 @@ export function EditPerfumeDialog({ open, onOpenChange, onSave, perfume }: EditP
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-precio">Precio (ARS)</Label>
-              <Input id="edit-precio" type="number" step="0.01" value={formData.precio} onChange={(e) => handleChange("precio", e.target.value)} required />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Género</Label>
+                <Select value={formData.genero} onValueChange={(v) => handleChange("genero", v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Femenino">Femenino</SelectItem>
+                    <SelectItem value="Unisex">Unisex</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-precio">Precio (ARS)</Label>
+                <Input id="edit-precio" type="number" step="0.01" value={formData.precio} onChange={(e) => handleChange("precio", e.target.value)} required />
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -34,9 +34,20 @@ export function PerfumeDetail({ perfume }: PerfumeDetailProps) {
 
       <div className="flex flex-col">
         <div className="space-y-4">
-          <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-widest">
-            {perfume.marca}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-widest">
+              {perfume.marca}
+            </p>
+            {perfume.genero && (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                perfume.genero === "Masculino" ? "bg-blue-50 text-blue-600 border-blue-100" :
+                perfume.genero === "Femenino" ? "bg-pink-50 text-pink-600 border-pink-100" :
+                "bg-slate-50 text-slate-600 border-slate-100"
+              }`}>
+                {perfume.genero}
+              </span>
+            )}
+          </div>
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-foreground leading-tight text-balance">
             {perfume.nombre}
           </h1>

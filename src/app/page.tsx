@@ -11,6 +11,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
+  const [genderFilter, setGenderFilter] = useState<string>("Todos");
 
   useEffect(() => {
     async function loadCatalog() {
@@ -32,9 +33,12 @@ export default function Home() {
 
   const filteredAndSortedPerfumes = useMemo(() => {
     let result = perfumes.filter(
-      (perfume) =>
-        perfume.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        perfume.marca.toLowerCase().includes(searchQuery.toLowerCase())
+      (perfume) => {
+        const matchesSearch = perfume.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             perfume.marca.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesGender = genderFilter === "Todos" || perfume.genero === genderFilter;
+        return matchesSearch && matchesGender;
+      }
     );
 
     switch (sortBy) {
@@ -53,14 +57,14 @@ export default function Home() {
     }
 
     return result;
-  }, [perfumes, searchQuery, sortBy]);
+  }, [perfumes, searchQuery, sortBy, genderFilter]);
 
   return (
     <div className="min-h-screen bg-background">
       <Header onSearchChange={setSearchQuery} />
 
       <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
             <h2 className="font-serif text-3xl md:text-4xl text-foreground">
               Nuestra Colección
@@ -68,6 +72,22 @@ export default function Home() {
             <p className="text-muted-foreground mt-2">
               Fragancias disponibles
             </p>
+          </div>
+
+          <div className="flex bg-muted p-1 rounded-lg self-start">
+            {["Todos", "Masculino", "Femenino", "Unisex"].map((g) => (
+              <button
+                key={g}
+                onClick={() => setGenderFilter(g)}
+                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  genderFilter === g
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
           </div>
         </div>
 

@@ -10,6 +10,9 @@ const mapPerfume = (p: any) => ({
   notasDescripcion: p.notas_descripcion,
   notasImagenUrl: p.notas_imagen_url,
   productoImagenUrl: p.producto_imagen_url,
+  inspiracion: p.inspiracion,
+  inspiracionImagenUrl: p.inspiracion_imagen_url,
+  genero: p.genero,
   images: p.images || [],
   visible: p.visible,
   createdAt: p.created_at,
@@ -92,6 +95,10 @@ export async function PUT(
       ? await uploadToSupabase(body.notasImagenUrl, 'notes')
       : '';
 
+    const savedInspirationImage = body.inspiracionImagenUrl
+      ? await uploadToSupabase(body.inspiracionImagenUrl, 'inspirations')
+      : '';
+
     const { data, error } = await supabase
       .from('perfumes_catalogo')
       .update({
@@ -101,6 +108,9 @@ export async function PUT(
         notas_descripcion: body.notasDescripcion,
         notas_imagen_url: savedNotesImage,
         producto_imagen_url: savedImages[0] || '',
+        inspiracion: body.inspiracion,
+        inspiracion_imagen_url: savedInspirationImage,
+        genero: body.genero,
         images: savedImages,
         visible: body.visible,
         updated_at: new Date().toISOString(),
