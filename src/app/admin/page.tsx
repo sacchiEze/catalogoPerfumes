@@ -6,7 +6,7 @@ import { PerfumeTable } from "@/components/admin/perfume-table";
 import { AddPerfumeDialog } from "@/components/admin/add-perfume-dialog";
 import { EditPerfumeDialog } from "@/components/admin/edit-perfume-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Lock, ArrowLeft, Search, ArrowUpDown, Eye, EyeOff } from "lucide-react";
+import { Plus, Loader2, Lock, ArrowLeft, Search, ArrowUpDown, Eye, EyeOff, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -15,6 +15,15 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuGroup
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -26,8 +35,8 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("nombre");
-  const [filterMarca, setFilterMarca] = useState("all");
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: "asc" | "desc" }>({ key: "nombre", direction: "asc" });
+  const [filterMarcas, setFilterMarcas] = useState<string[]>([]);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -181,16 +190,41 @@ export default function AdminPage() {
       const matchesSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            p.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (p.inspiracion && p.inspiracion.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesMarca = filterMarca === "all" || p.marca === filterMarca;
+      const matchesMarca = filterMarcas.length === 0 || filterMarcas.includes(p.marca);
       return matchesSearch && matchesMarca;
     })
     .sort((a, b) => {
-      if (sortBy === "nombre") return a.nombre.localeCompare(b.nombre);
-      if (sortBy === "marca") return a.marca.localeCompare(b.marca);
-      if (sortBy === "precio-asc") return a.precio - b.precio;
-      if (sortBy === "precio-desc") return b.precio - a.precio;
-      return 0;
+      const { key, direction } = sortConfig;
+      const factor = direction === "asc" ? 1 : -1;
+
+      if (key === "precio") {
+        return (a.precio - b.precio) * factor;
+      }
+      if (key === "visible") {
+        return (a.visible === b.visible ? 0 : a.visible ? -1 : 1) * factor;
+      }
+      
+      const aVal = String(a[key] || "").toLowerCase();
+      const bVal = String(b[key] || "").toLowerCase();
+      return aVal.localeCompare(bVal) * factor;
     });
+
+  const handleSort = (key: string) => {
+    setSortConfig(current => {
+      if (current.key === key) {
+        return { key, direction: current.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const toggleMarcaFilter = (marca: string) => {
+    setFilterMarcas(current => 
+      current.includes(marca) 
+        ? current.filter(m => m !== marca)
+        : [...current, marca]
+    );
+  };
 
   if (!isAuthenticated) {
     return (
@@ -257,37 +291,52 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="md:col-span-3">
+            <div className="md:col-span-4">
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Filtrar por Marca</label>
-              <Select value={filterMarca} onValueChange={setFilterMarca}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas las marcas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las marcas</SelectItem>
-                  {marcas.map(m => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-normal">
+                    {filterMarcas.length === 0 
+                      ? "Todas las marcas" 
+                      : filterMarcas.length === 1 
+                        ? filterMarcas[0] 
+                        : `${filterMarcas.length} marcas seleccionadas`}
+                    <Filter className="w-4 h-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="start">
+                  <DropdownMenuLabel>Marcas</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    {marcas.map(m => (
+                      <DropdownMenuCheckboxItem
+                        key={m}
+                        checked={filterMarcas.includes(m)}
+                        onCheckedChange={() => toggleMarcaFilter(m)}
+                        onSelect={(e) => e.preventDefault()} // Keeps the dropdown open on click
+                      >
+                        {m}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  {filterMarcas.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuCheckboxItem
+                        checked={false}
+                        onCheckedChange={() => setFilterMarcas([])}
+                        onSelect={(e) => e.preventDefault()}
+                        className="text-primary font-medium"
+                      >
+                        Limpiar filtros
+                      </DropdownMenuCheckboxItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
-            <div className="md:col-span-3">
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Ordenar por</label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nombre">Nombre (A-Z)</SelectItem>
-                  <SelectItem value="marca">Marca (A-Z)</SelectItem>
-                  <SelectItem value="precio-asc">Precio: Menor a Mayor</SelectItem>
-                  <SelectItem value="precio-desc">Precio: Mayor a Menor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="md:col-span-2 flex gap-2">
+            <div className="md:col-span-4 flex gap-2">
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -326,6 +375,8 @@ export default function AdminPage() {
               onEdit={(p) => { setEditingPerfume(p); setIsEditOpen(true); }}
               onDelete={handleDelete}
               onToggleVisibility={handleToggleVisibility}
+              sortConfig={sortConfig}
+              onSort={handleSort}
             />
           )}
         </div>

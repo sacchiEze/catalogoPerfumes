@@ -4,26 +4,52 @@ import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Trash2, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Edit2, Trash2, Eye, EyeOff, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface PerfumeTableProps {
   data: any[];
   onEdit: (item: any) => void;
   onDelete: (id: string) => void;
   onToggleVisibility: (id: string, current: boolean) => void;
+  sortConfig: { key: string, direction: "asc" | "desc" };
+  onSort: (key: string) => void;
 }
 
-export function PerfumeTable({ data, onEdit, onDelete, onToggleVisibility }: PerfumeTableProps) {
+export function PerfumeTable({ data, onEdit, onDelete, onToggleVisibility, sortConfig, onSort }: PerfumeTableProps) {
+  const getSortIcon = (columnKey: string) => {
+    if (sortConfig.key !== columnKey) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
+    return sortConfig.direction === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
   return (
     <div className="border rounded-lg overflow-hidden bg-card">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-[80px]">Imagen</TableHead>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Marca</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            <TableHead className="text-center">Estado</TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 transition-colors" 
+              onClick={() => onSort("nombre")}
+            >
+              <div className="flex items-center">Nombre {getSortIcon("nombre")}</div>
+            </TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 transition-colors" 
+              onClick={() => onSort("marca")}
+            >
+              <div className="flex items-center">Marca {getSortIcon("marca")}</div>
+            </TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 transition-colors text-right" 
+              onClick={() => onSort("precio")}
+            >
+              <div className="flex items-center justify-end">Precio {getSortIcon("precio")}</div>
+            </TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 transition-colors text-center" 
+              onClick={() => onSort("visible")}
+            >
+              <div className="flex items-center justify-center">Estado {getSortIcon("visible")}</div>
+            </TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
