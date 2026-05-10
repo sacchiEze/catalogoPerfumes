@@ -56,8 +56,8 @@ export default function AdminPage() {
     }
   };
 
-  const fetchPerfumes = async () => {
-    setIsLoading(true);
+  const fetchPerfumes = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await fetch("/api/perfumes");
       const data = await res.json();
@@ -65,7 +65,7 @@ export default function AdminPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -85,27 +85,55 @@ export default function AdminPage() {
   };
 
   const handleSaveEdit = async (updated: any) => {
+    // Optimistic update
+    const previousPerfumes = [...perfumes];
+    setPerfumes(perfumes.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+    
     const res = await fetch(`/api/perfumes/${updated.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updated),
     });
-    if (res.ok) fetchPerfumes();
+    
+    if (res.ok) {
+      fetchPerfumes(true);
+    } else {
+      setPerfumes(previousPerfumes);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("¿Estás seguro de eliminar este perfume?")) return;
+    
+    // Optimistic update
+    const previousPerfumes = [...perfumes];
+    setPerfumes(perfumes.filter(p => p.id !== id));
+    
     const res = await fetch(`/api/perfumes/${id}`, { method: "DELETE" });
-    if (res.ok) fetchPerfumes();
+    if (res.ok) {
+      fetchPerfumes(true);
+    } else {
+      setPerfumes(previousPerfumes);
+    }
   };
 
   const handleToggleVisibility = async (id: string, current: boolean) => {
+    // Optimistic update
+    const nextVisible = !current;
+    setPerfumes(perfumes.map(p => p.id === id ? { ...p, visible: nextVisible } : p));
+    
     const res = await fetch(`/api/perfumes/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visible: !current }),
+      body: JSON.stringify({ visible: nextVisible }),
     });
-    if (res.ok) fetchPerfumes();
+    
+    if (!res.ok) {
+      // Revert if error
+      setPerfumes(perfumes.map(p => p.id === id ? { ...p, visible: current } : p));
+    } else {
+      fetchPerfumes(true);
+    }
   };
 
   if (!isAuthenticated) {
