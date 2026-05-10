@@ -39,8 +39,8 @@ export function PerfumeTable({ data, onEdit, onDelete, onToggleVisibility }: Per
               <TableRow key={perfume.id} className={perfume.visible ? "" : "opacity-60 bg-muted/30"}>
                 <TableCell>
                   <div className="w-12 h-16 bg-muted rounded overflow-hidden">
-                    {perfume.productoImagenUrl ? (
-                      <img src={perfume.productoImagenUrl} alt={perfume.nombre} className="w-full h-full object-cover" />
+                    {perfume.productoImagenUrl || (perfume.images && perfume.images.length > 0 ? perfume.images[0] : null) || perfume.inspiracionImagenUrl ? (
+                      <img src={perfume.productoImagenUrl || (perfume.images && perfume.images.length > 0 ? perfume.images[0] : null) || perfume.inspiracionImagenUrl} alt={perfume.nombre} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground text-center px-1">
                         Sin foto

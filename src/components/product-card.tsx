@@ -26,15 +26,17 @@ interface ProductCardProps {
 
 export function ProductCard({ perfume }: ProductCardProps) {
   const [imgError, setImgError] = useState(false);
+  
+  const displayImage = perfume.productoImagenUrl || (perfume.images && perfume.images.length > 0 ? perfume.images[0] : null) || perfume.inspiracionImagenUrl;
 
   return (
     <article className="group">
       <Link href={`/perfume/${perfume.id}`} className="block">
         <div className="aspect-[3/4] bg-secondary mb-4 overflow-hidden">
-          {!imgError && perfume.productoImagenUrl ? (
+          {!imgError && displayImage ? (
             <div className="relative w-full h-full">
               <Image
-                src={perfume.productoImagenUrl}
+                src={displayImage}
                 alt={`${perfume.nombre} de ${perfume.marca}`}
                 width={400}
                 height={533}

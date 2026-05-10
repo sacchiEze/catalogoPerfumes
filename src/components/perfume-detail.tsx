@@ -10,9 +10,12 @@ interface PerfumeDetailProps {
 
 export function PerfumeDetail({ perfume }: PerfumeDetailProps) {
   // Build images array from the available URLs in the DB
-  const carouselImages = [...(perfume.images && perfume.images.length > 0 
-    ? perfume.images 
-    : [perfume.productoImagenUrl])];
+  const validImages = perfume.images && perfume.images.length > 0 ? perfume.images : [];
+  if (validImages.length === 0 && perfume.productoImagenUrl) {
+    validImages.push(perfume.productoImagenUrl);
+  }
+  
+  const carouselImages = [...validImages];
   
   if (perfume.notasImagenUrl && !carouselImages.includes(perfume.notasImagenUrl)) {
     carouselImages.push(perfume.notasImagenUrl)
@@ -22,14 +25,23 @@ export function PerfumeDetail({ perfume }: PerfumeDetailProps) {
     carouselImages.push(perfume.inspiracionImagenUrl)
   }
 
+  // Filter out any empty strings or nulls
+  const finalImages = carouselImages.filter(Boolean);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
       <div className="w-full">
-        <ImageCarousel 
-          images={carouselImages.filter(Boolean)} 
-          alt={perfume.nombre}
-          inspirationImage={perfume.inspiracionImagenUrl}
-        />
+        {finalImages.length > 0 ? (
+          <ImageCarousel 
+            images={finalImages} 
+            alt={perfume.nombre}
+            inspirationImage={perfume.inspiracionImagenUrl}
+          />
+        ) : (
+          <div className="aspect-[3/4] bg-muted rounded-xl flex items-center justify-center border-2 border-dashed">
+            <p className="text-muted-foreground text-sm">Sin imagen disponible</p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col">
